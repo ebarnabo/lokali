@@ -9,12 +9,10 @@ export function VendorMap({
   points,
   origin,
   radiusKm,
-  className = "h-[28rem] md:h-[36rem]",
 }: {
   points: Point[]
   origin: { lat: number; lng: number } | null
   radiusKm: number
-  className?: string
 }) {
   const node = useRef<HTMLDivElement>(null)
   const located = points.filter((point) => point.lat !== null && point.lng !== null)
@@ -92,7 +90,7 @@ export function VendorMap({
     }
   }, [signature])
 
-  return <div ref={node} className={`lokali-map w-full ${className}`} />
+  return <div ref={node} className="lokali-map w-full" />
 }
 
 function escapeHtml(value: string) {

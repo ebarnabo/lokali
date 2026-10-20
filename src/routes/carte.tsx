@@ -103,8 +103,16 @@ function MapPage() {
       </motion.div>
 
       <div className="mt-6">
+        <div className="card mt-6 overflow-hidden">
+          <VendorMap
+            points={place ? nearby.map((item) => item.business) : (rows ?? [])}
+            origin={place}
+            radiusKm={activeRadius}
+          />
+        </div>
+
         <form
-          className="card relative z-[500] p-3"
+          className="card relative z-[500] mt-3 p-3"
           onSubmit={(event) => {
             event.preventDefault()
             if (draft.trim()) pickCommune(draft)
@@ -196,15 +204,6 @@ function MapPage() {
           </div>
           {message ? <p className="mt-2 text-xs text-red">{message}</p> : null}
         </form>
-
-        <div className="card mt-3 overflow-hidden">
-          <VendorMap
-            className="h-[28rem] md:h-[36rem]"
-            points={place ? nearby.map((item) => item.business) : (rows ?? [])}
-            origin={place}
-            radiusKm={activeRadius}
-          />
-        </div>
       </div>
 
       <section className="mt-4">

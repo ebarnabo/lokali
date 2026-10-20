@@ -94,14 +94,31 @@
 }
 
 .lokali-map {
+  height: 28rem;
+  min-height: 28rem;
   background: #e7efe9;
 }
 
+@media (min-width: 768px) {
+  .lokali-map {
+    height: 36rem;
+    min-height: 36rem;
+  }
+}
+
 .lokali-map.leaflet-container {
-  height: 100%;
+  height: 28rem;
+  min-height: 28rem;
   width: 100%;
   background: #dfeae3;
   font-family: var(--font-sans);
+}
+
+@media (min-width: 768px) {
+  .lokali-map.leaflet-container {
+    height: 36rem;
+    min-height: 36rem;
+  }
 }
 
 .lokali-map.leaflet-container .leaflet-tile-pane {
