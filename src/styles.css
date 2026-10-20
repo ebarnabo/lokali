@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #f7f4ee;
+  --color-ink: #1c1917;
+  --color-muted: #6b6560;
+  --color-line: #e6e1d8;
+  --color-green: #1a7a4c;
+  --color-green-soft: #e7f3ec;
+  --color-red: #c8102e;
+  --color-paper: #fffcf8;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --radius-card: 1.5rem;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    background: var(--color-cream);
+    color: var(--color-ink);
+  }
+  body {
+    font-family: var(--font-sans);
+    min-height: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lift {
+    transition: transform 180ms ease, border-color 180ms ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.lokali-pin {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-green);
+  border: 2px solid var(--color-paper);
+  box-shadow: 0 1px 4px rgb(28 25 23 / 0.35);
+}
