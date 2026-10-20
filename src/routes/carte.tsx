@@ -26,6 +26,7 @@ function MapPage() {
   const [draft, setDraft] = useState("")
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState("")
+  const [locating, setLocating] = useState(false)
 
   useEffect(() => {
     listBusinesses({ data: "" }).then(setRows).catch(() => setRows([]))
@@ -34,7 +35,7 @@ function MapPage() {
       if (saved) {
         const next = JSON.parse(saved) as Place
         setPlace(next)
-        setDraft(next.label)
+        setDraft(next.label === "Ma position" ? "" : next.label)
       }
       const savedRadius = Number(localStorage.getItem(RADIUS_KEY))
       if (savedRadius >= 2 && savedRadius <= 30) setRadius(savedRadius)
@@ -45,24 +46,44 @@ function MapPage() {
 
   function remember(next: Place) {
     setPlace(next)
-    setDraft(next.label)
+    setDraft(next.label === "Ma position" ? "" : next.label)
     setOpen(false)
     setMessage("")
     localStorage.setItem(PLACE_KEY, JSON.stringify(next))
+  }
+
+  function locate() {
+    if (!navigator.geolocation) {
+      setMessage("Localisation indisponible.")
+      return
+    }
+    setLocating(true)
+    setMessage("")
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false)
+        remember({ lat: position.coords.latitude, lng: position.coords.longitude, label: "Ma position" })
+      },
+      () => {
+        setLocating(false)
+        setMessage("Position refusée.")
+      },
+      { enableHighAccuracy: false, timeout: 8000 },
+    )
   }
 
   function pickCommune(value: string) {
     const found = COMMUNES.find((item) => item.name.toLocaleLowerCase("fr") === value.trim().toLocaleLowerCase("fr"))
       ?? matchCommunes(value)[0]
     if (!found) {
-      setMessage("Choisissez une commune.")
+      setMessage("Commune inconnue.")
       return
     }
     remember({ lat: found.lat, lng: found.lng, label: found.name })
   }
 
   const activeRadius = user ? radius : GUEST_RADIUS
-  const suggestions = draft.trim() ? matchCommunes(draft).slice(0, 6) : COMMUNES.slice(0, 6)
+  const suggestions = draft.trim() ? matchCommunes(draft).slice(0, 6) : []
   const nearby = useMemo(() => {
     if (!place || !rows) return []
     return rows
@@ -86,10 +107,19 @@ function MapPage() {
           className="card relative z-[500] p-3"
           onSubmit={(event) => {
             event.preventDefault()
-            pickCommune(draft)
+            if (draft.trim()) pickCommune(draft)
           }}
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <button
+              type="button"
+              className={`${buttonClass} shrink-0 gap-2 px-5`}
+              onClick={locate}
+              disabled={locating}
+            >
+              <LocateFixed className="h-4 w-4" aria-hidden />
+              {locating ? "…" : "Me localiser"}
+            </button>
             <div className="relative min-w-0 flex-1">
               <div className="flex gap-2">
                 <div className="relative min-w-0 flex-1">
@@ -100,34 +130,16 @@ function MapPage() {
                       setDraft(event.target.value)
                       setOpen(true)
                     }}
-                    onFocus={() => setOpen(true)}
+                    onFocus={() => setOpen(Boolean(draft.trim()))}
                     onBlur={() => setOpen(false)}
-                    placeholder="Votre commune"
+                    placeholder="Commune, si besoin"
                     className="h-11 w-full rounded-xl bg-cream/80 pr-3 pl-9 outline-none"
                     aria-autocomplete="list"
                     aria-expanded={open}
                   />
                 </div>
-                <button type="submit" className={`${buttonClass} h-11 px-4`}>
-                  Chercher
-                </button>
-                <button
-                  type="button"
-                  className={`${ghostClass} h-11 w-11 shrink-0 px-0`}
-                  aria-label="Me localiser"
-                  onClick={() => {
-                    if (!navigator.geolocation) {
-                      setMessage("Localisation indisponible.")
-                      return
-                    }
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => remember({ lat: position.coords.latitude, lng: position.coords.longitude, label: "Ma position" }),
-                      () => setMessage("Position refusée."),
-                      { enableHighAccuracy: false, timeout: 8000 },
-                    )
-                  }}
-                >
-                  <LocateFixed className="h-4 w-4" />
+                <button type="submit" className={`${ghostClass} h-11 px-4`}>
+                  OK
                 </button>
               </div>
               <AnimatePresence>
@@ -155,7 +167,7 @@ function MapPage() {
                 ) : null}
               </AnimatePresence>
             </div>
-            <div className="md:w-56">
+            <div className="md:w-48">
               <div className="flex items-baseline justify-between">
                 <span className="text-xs text-muted">Rayon</span>
                 <span className="font-display text-2xl leading-none text-green">{activeRadius} km</span>
@@ -180,9 +192,9 @@ function MapPage() {
                   <Link to="/login" className="font-medium text-green">Connexion</Link> pour le régler.
                 </p>
               ) : null}
-              {message ? <p className="text-xs text-red">{message}</p> : null}
             </div>
           </div>
+          {message ? <p className="mt-2 text-xs text-red">{message}</p> : null}
         </form>
 
         <div className="card mt-3 overflow-hidden">
@@ -195,19 +207,15 @@ function MapPage() {
         </div>
       </div>
 
-      <section className="mt-5">
-        {!place ? <p className="text-sm text-muted">Une commune, ou votre position. Sans compte.</p> : null}
+      <section className="mt-4">
         {place ? (
           <p className="text-sm text-muted">
             {rows === null
-              ? "Recherche des commerces…"
+              ? "…"
               : nearby.length === 0
-                ? "Aucun commerce dans cette zone pour l’instant."
-                : `${nearby.length} à moins de ${activeRadius} km`}
-            {place.label ? ` · ${place.label}` : ""}
+                ? "Rien à proximité."
+                : `${nearby.length} · ${place.label}`}
           </p>
-        ) : rows && rows.length === 0 ? (
-          <p className="text-sm text-muted">La carte de la Guadeloupe. Les commerces apparaîtront ici dès qu’ils seront publiés.</p>
         ) : null}
         <div className="mt-3 grid gap-2">
           <AnimatePresence mode="popLayout">
