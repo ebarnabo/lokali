@@ -186,16 +186,12 @@ function MapPage() {
         </form>
 
         <div className="card mt-3 overflow-hidden">
-          {rows === null ? (
-            <div className="lokali-map grid h-[28rem] place-items-center text-muted md:h-[36rem]">Chargement…</div>
-          ) : (
-            <VendorMap
-              className="h-[28rem] md:h-[36rem]"
-              points={place ? nearby.map((item) => item.business) : rows}
-              origin={place}
-              radiusKm={activeRadius}
-            />
-          )}
+          <VendorMap
+            className="h-[28rem] md:h-[36rem]"
+            points={place ? nearby.map((item) => item.business) : (rows ?? [])}
+            origin={place}
+            radiusKm={activeRadius}
+          />
         </div>
       </div>
 
@@ -203,9 +199,15 @@ function MapPage() {
         {!place ? <p className="text-sm text-muted">Une commune, ou votre position. Sans compte.</p> : null}
         {place ? (
           <p className="text-sm text-muted">
-            {nearby.length === 0 ? "Rien dans cette zone." : `${nearby.length} à moins de ${activeRadius} km`}
+            {rows === null
+              ? "Recherche des commerces…"
+              : nearby.length === 0
+                ? "Aucun commerce dans cette zone pour l’instant."
+                : `${nearby.length} à moins de ${activeRadius} km`}
             {place.label ? ` · ${place.label}` : ""}
           </p>
+        ) : rows && rows.length === 0 ? (
+          <p className="text-sm text-muted">La carte de la Guadeloupe. Les commerces apparaîtront ici dès qu’ils seront publiés.</p>
         ) : null}
         <div className="mt-3 grid gap-2">
           <AnimatePresence mode="popLayout">

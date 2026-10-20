@@ -83,6 +83,7 @@ export function VendorMap({
           maxZoom: 14,
         })
       }
+      requestAnimationFrame(() => view.invalidateSize())
       map = view
     })()
     return () => {
