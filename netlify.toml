@@ -1,6 +1,10 @@
 [build]
-  command = "npm run build"
+  command = "npm run build && node scripts/netlify-pglite.mjs"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
+
+[functions]
+  directory = ".netlify/functions-internal"
+  node_bundler = "none"
