@@ -50,7 +50,8 @@ function Entraide() {
 
   return (
     <Shell>
-      <h1 className="text-3xl font-semibold tracking-tight">Entraide</h1>
+      <p className="kicker">Entre habitants</p>
+      <h1 className="mt-2 text-4xl font-semibold tracking-tight">Entraide</h1>
       <p className="mt-2 max-w-2xl text-muted">{intro}</p>
       <SignedOut>
         <p className="mt-6">
@@ -62,7 +63,7 @@ function Entraide() {
       </SignedOut>
       <SignedIn>
         <form
-          className="mt-6 space-y-3 rounded-3xl border border-line bg-paper p-6"
+          className="card mt-6 space-y-3 p-6"
           onSubmit={(event) => {
             event.preventDefault()
             setMessage("")
@@ -98,7 +99,7 @@ function Entraide() {
             <h2 className="mb-3 font-semibold">Vos annonces</h2>
             <div className="space-y-3">
               {mine.map((post) => (
-                <article key={post.id} className="rounded-3xl border border-line bg-paper p-5">
+                <article key={post.id} className="card p-5">
                   <p className="text-sm text-muted">{labelKind(post.kind)} · {statusLabel(post.status)} · {post.createdLabel}</p>
                   <h3 className="mt-1 font-semibold">{post.title}</h3>
                   <p className="mt-2 whitespace-pre-wrap leading-relaxed">{post.body}</p>
@@ -120,7 +121,7 @@ function Entraide() {
         {posts === null ? <p className="text-muted">Chargement…</p> : null}
         {posts && posts.length === 0 ? <p className="text-muted">Aucune annonce validée.</p> : null}
         {posts?.map((post) => (
-          <article key={post.id} className="rounded-3xl border border-line bg-paper p-6">
+          <article key={post.id} className="card p-6">
             <p className="text-sm text-muted">{labelKind(post.kind)} · {post.authorLabel} · {post.createdLabel}</p>
             <h2 className="mt-1 text-xl font-semibold">{post.title}</h2>
             <p className="mt-2 whitespace-pre-wrap leading-relaxed">{post.body}</p>

@@ -161,6 +161,15 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
 
+  if (import.meta.env.DEV) {
+    const { seedLocalPro } = await import("./local-pro.server")
+    const sql = toSql(async <T>(text: string, params: unknown[]) => {
+      const result = await pg.query<T>(text, params);
+      return result.rows;
+    });
+    await seedLocalPro(sql);
+  }
+
   return toSql(async <T>(text: string, params: unknown[]) => {
     const result = await pg.query<T>(text, params);
     return result.rows;

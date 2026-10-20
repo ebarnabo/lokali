@@ -23,6 +23,9 @@ export type PublicProduct = {
 
 export type PublicBusiness = {
   businessName: string
+  siret: string
+  legalForm: string
+  activity: string
   description: string
   address: string
   commune: string
@@ -31,6 +34,7 @@ export type PublicBusiness = {
   phone: string
   email: string
   products: PublicProduct[]
+  createdOn: string
 }
 
 export type PublicPost = {
@@ -58,6 +62,10 @@ export type Me = {
   accountKind: AccountKind
   isAdmin: boolean
   businessName: string
+  siret: string
+  legalForm: string
+  activity: string
+  managerName: string
   description: string
   address: string
   commune: string
@@ -92,6 +100,27 @@ function text(max: number, required = false) {
     .refine((value) => value.length <= max, "Texte trop long")
     .refine((value) => !required || value.length > 0, "Champ requis")
 }
+
+function luhn(digits: string) {
+  let sum = 0
+  for (let i = 0; i < digits.length; i += 1) {
+    let n = Number(digits[digits.length - 1 - i])
+    if (i % 2 === 1) {
+      n *= 2
+      if (n > 9) n -= 9
+    }
+    sum += n
+  }
+  return sum % 10 === 0
+}
+
+const siretSchema = z
+  .string()
+  .transform((value) => value.replace(/[^\d]/g, ""))
+  .refine(
+    (value) => value === "" || (value.length === 14 && luhn(value) && !/^(\d)\1{13}$/.test(value)),
+    "SIRET invalide : 14 chiffres",
+  )
 
 const latSchema = z
   .number()
@@ -180,6 +209,7 @@ async function ensureProfile(userId: string) {
     select is_admin from profiles where user_id = ${userId} limit 1
   `
   if (mine[0]?.is_admin === true) return
+  if (userId === "lokali-local-pro") return
   const others = await sql<{ n: number }>`
     select count(*)::int as n from profiles where is_admin
   `
@@ -201,6 +231,10 @@ async function loadMe(userId: string): Promise<Me> {
     account_kind: AccountKind
     is_admin: boolean
     business_name: string
+    siret: string
+    legal_form: string
+    activity: string
+    manager_name: string
     description: string
     address: string
     commune: string
@@ -212,7 +246,8 @@ async function loadMe(userId: string): Promise<Me> {
     show_email: boolean
   }>`
     select p.display_name, u.email as login_email, p.account_kind, p.is_admin,
-           p.business_name, p.description, p.address, p.commune, p.lat, p.lng,
+           p.business_name, p.siret, p.legal_form, p.activity, p.manager_name,
+           p.description, p.address, p.commune, p.lat, p.lng,
            p.public_phone, p.public_email, p.show_phone, p.show_email
     from profiles p
     join "user" u on u.id = p.user_id
@@ -239,6 +274,10 @@ async function loadMe(userId: string): Promise<Me> {
     accountKind: row.account_kind,
     isAdmin: row.is_admin,
     businessName: row.business_name,
+    siret: row.siret,
+    legalForm: row.legal_form,
+    activity: row.activity,
+    managerName: row.manager_name,
     description: row.description,
     address: row.address,
     commune: row.commune,
@@ -270,6 +309,10 @@ const profileInput = z.object({
   displayName: text(80, true),
   accountKind: z.enum(["particulier", "pro"]),
   businessName: text(120),
+  siret: siretSchema,
+  legalForm: text(40),
+  activity: text(80),
+  managerName: text(80),
   description: text(600),
   address: text(240),
   commune: text(80),
@@ -305,6 +348,9 @@ export const listBusinesses = createServerFn({ method: "GET" })
     const like = `%${query.replace(/[\\%_]/g, "\\$&")}%`
     const rows = await sql<{
       business_name: string
+      siret: string
+      legal_form: string
+      activity: string
       description: string
       address: string
       commune: string
@@ -313,8 +359,10 @@ export const listBusinesses = createServerFn({ method: "GET" })
       phone: string
       email: string
       products: unknown
+      created_on: string
     }>`
-      select p.business_name, p.description, p.address, p.commune, p.lat, p.lng,
+      select p.business_name, p.siret, p.legal_form, p.activity, p.description, p.address, p.commune, p.lat, p.lng,
+             to_char(p.created_at, 'YYYY-MM-DD') as created_on,
              case when p.show_phone then p.public_phone else '' end as phone,
              case when p.show_email then p.public_email else '' end as email,
              coalesce((
@@ -328,10 +376,13 @@ export const listBusinesses = createServerFn({ method: "GET" })
       from profiles p
       where p.account_kind = 'pro'
         and p.business_name <> ''
+        and p.siret <> ''
         and (
           ${query} = ''
           or p.business_name ilike ${like} escape '\\'
           or p.commune ilike ${like} escape '\\'
+          or p.activity ilike ${like} escape '\\'
+          or p.siret ilike ${like} escape '\\'
           or exists (
             select 1 from products pr
             where pr.user_id = p.user_id and pr.available and not pr.hidden_by_admin
@@ -343,6 +394,9 @@ export const listBusinesses = createServerFn({ method: "GET" })
     `
     const businesses: PublicBusiness[] = rows.map((row) => ({
       businessName: row.business_name,
+      siret: row.siret,
+      legalForm: row.legal_form,
+      activity: row.activity,
       description: row.description,
       address: row.address,
       commune: row.commune,
@@ -351,8 +405,42 @@ export const listBusinesses = createServerFn({ method: "GET" })
       phone: row.phone,
       email: row.email,
       products: asProducts(row.products),
+      createdOn: row.created_on,
     }))
     return businesses
+  })
+
+export const suggestSearch = createServerFn({ method: "GET" })
+  .validator((query: string) => parse(text(40), query ?? ""))
+  .handler(async ({ data: query }) => {
+    const sql = await getSql()
+    const like = `%${query.replace(/[\\%_]/g, "\\$&")}%`
+    if (!query) return { communes: [] as string[], topics: [] as string[] }
+    const communes = await sql<{ label: string }>`
+      select distinct commune as label from profiles
+      where account_kind = 'pro' and siret <> '' and commune <> ''
+        and commune ilike ${like} escape '\\'
+      order by commune
+      limit 6
+    `
+    const topics = await sql<{ label: string }>`
+      select label from (
+        select distinct activity as label from profiles
+        where account_kind = 'pro' and siret <> '' and activity <> ''
+          and activity ilike ${like} escape '\\'
+        union
+        select distinct pr.name as label from products pr
+        join profiles p on p.user_id = pr.user_id
+        where p.account_kind = 'pro' and p.siret <> '' and pr.available and not pr.hidden_by_admin
+          and pr.name ilike ${like} escape '\\'
+      ) hints
+      order by label
+      limit 6
+    `
+    return {
+      communes: communes.map((row) => row.label),
+      topics: topics.map((row) => row.label),
+    }
   })
 
 export const listApprovedPosts = createServerFn({ method: "GET" }).handler(async () => {
@@ -408,8 +496,8 @@ export const saveProfile = createServerFn({ method: "POST" })
   .validator((input: unknown) => parse(profileInput, input))
   .handler(async ({ context, data }) => {
     pairCoords(data.lat, data.lng)
-    if (data.accountKind === "pro" && (!data.businessName || !data.address)) {
-      throw new Error("Un compte pro indique le nom et l'adresse du commerce")
+    if (data.accountKind === "pro" && (!data.businessName || !data.siret || !data.legalForm || !data.activity || !data.address)) {
+      throw new Error("Un compte pro indique l'enseigne, le SIRET, la forme, l'activité et l'adresse")
     }
     let lat = data.lat
     let lng = data.lng
@@ -427,6 +515,10 @@ export const saveProfile = createServerFn({ method: "POST" })
         display_name = ${data.displayName},
         account_kind = ${data.accountKind},
         business_name = ${data.businessName},
+        siret = ${data.siret},
+        legal_form = ${data.legalForm},
+        activity = ${data.activity},
+        manager_name = ${data.managerName},
         description = ${data.description},
         address = ${data.address},
         commune = ${data.commune},
@@ -455,7 +547,7 @@ export const addProduct = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const me = await loadMe(context.userId)
     if (me.accountKind !== "pro") throw new Error("Réservé aux comptes pro")
-    if (!me.businessName) throw new Error("Renseignez d'abord le commerce")
+    if (!me.businessName || !me.siret) throw new Error("Renseignez d'abord le commerce et son SIRET")
     if (me.products.length >= 40) throw new Error("Limite de 40 produits")
     const sql = await getSql()
     await sql`
@@ -687,7 +779,7 @@ export const saveLegal = createServerFn({ method: "POST" })
       z.object({
         slug: z.enum(LEGAL_SLUGS),
         title: text(120, true),
-        body: text(8000, true),
+        body: text(20000, true),
       }),
       input,
     ),
@@ -711,3 +803,140 @@ export const adminListLegal = createServerFn({ method: "GET" })
       select slug, title, body from legal_pages order by slug
     `
   })
+
+const TEST_USER = "lokali-local-pro"
+
+export type DayStat = { day: string; accounts: number; products: number; posts: number }
+
+export type Stats = {
+  from: string
+  to: string
+  newParticuliers: number
+  newPros: number
+  newProducts: number
+  postsCreated: number
+  postsApproved: number
+  postsRejected: number
+  postsPending: number
+  prosWithProduct: number
+  visibleBusinesses: number
+  liveProducts: number
+  communes: number
+  withContact: number
+  livePosts: number
+  series: DayStat[]
+}
+
+const daySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide")
+
+export const getStats = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((input: { from: string; to: string }) => {
+    const data = parse(z.object({ from: daySchema, to: daySchema }), input)
+    const from = Date.parse(`${data.from}T00:00:00Z`)
+    const to = Date.parse(`${data.to}T00:00:00Z`)
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) throw new Error("Période invalide")
+    if ((to - from) / 86_400_000 > 366) throw new Error("Un an maximum")
+    return data
+  })
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId)
+    const sql = await getSql()
+    const from = data.from
+    const to = data.to
+    const rows = await sql<{
+      new_particuliers: number
+      new_pros: number
+      new_products: number
+      posts_created: number
+      posts_approved: number
+      posts_rejected: number
+      posts_pending: number
+      pros_with_product: number
+      visible_businesses: number
+      live_products: number
+      communes: number
+      with_contact: number
+      live_posts: number
+    }>`
+      select
+        (select count(*)::int from profiles
+          where user_id <> ${TEST_USER} and account_kind = 'particulier'
+            and created_at >= ${from}::date and created_at < ${to}::date + interval '1 day') as new_particuliers,
+        (select count(*)::int from profiles
+          where user_id <> ${TEST_USER} and account_kind = 'pro'
+            and created_at >= ${from}::date and created_at < ${to}::date + interval '1 day') as new_pros,
+        (select count(*)::int from products pr
+          where pr.user_id <> ${TEST_USER}
+            and pr.created_at >= ${from}::date and pr.created_at < ${to}::date + interval '1 day') as new_products,
+        (select count(*)::int from posts
+          where user_id <> ${TEST_USER}
+            and created_at >= ${from}::date and created_at < ${to}::date + interval '1 day') as posts_created,
+        (select count(*)::int from posts
+          where user_id <> ${TEST_USER} and status = 'approved'
+            and created_at >= ${from}::date and created_at < ${to}::date + interval '1 day') as posts_approved,
+        (select count(*)::int from posts
+          where user_id <> ${TEST_USER} and status = 'rejected'
+            and created_at >= ${from}::date and created_at < ${to}::date + interval '1 day') as posts_rejected,
+        (select count(*)::int from posts
+          where user_id <> ${TEST_USER} and status = 'pending'
+            and created_at >= ${from}::date and created_at < ${to}::date + interval '1 day') as posts_pending,
+        (select count(*)::int from profiles p
+          where p.user_id <> ${TEST_USER} and p.account_kind = 'pro'
+            and p.created_at >= ${from}::date and p.created_at < ${to}::date + interval '1 day'
+            and exists (select 1 from products pr where pr.user_id = p.user_id)) as pros_with_product,
+        (select count(*)::int from profiles
+          where user_id <> ${TEST_USER} and account_kind = 'pro' and business_name <> '' and siret <> '') as visible_businesses,
+        (select count(*)::int from products pr
+          join profiles p on p.user_id = pr.user_id
+          where p.user_id <> ${TEST_USER} and p.account_kind = 'pro' and p.siret <> ''
+            and pr.available and not pr.hidden_by_admin) as live_products,
+        (select count(distinct commune)::int from profiles
+          where user_id <> ${TEST_USER} and account_kind = 'pro' and siret <> '' and commune <> '') as communes,
+        (select count(*)::int from profiles
+          where user_id <> ${TEST_USER} and account_kind = 'pro' and siret <> ''
+            and ((show_phone and public_phone <> '') or (show_email and public_email <> ''))) as with_contact,
+        (select count(*)::int from posts
+          where user_id <> ${TEST_USER} and status = 'approved') as live_posts
+    `
+    const series = await sql<{ day: string; accounts: number; products: number; posts: number }>`
+      select to_char(day::date, 'YYYY-MM-DD') as day,
+        (select count(*)::int from profiles
+          where user_id <> ${TEST_USER} and created_at >= day and created_at < day + interval '1 day') as accounts,
+        (select count(*)::int from products
+          where user_id <> ${TEST_USER} and created_at >= day and created_at < day + interval '1 day') as products,
+        (select count(*)::int from posts
+          where user_id <> ${TEST_USER} and created_at >= day and created_at < day + interval '1 day') as posts
+      from generate_series(${from}::date, ${to}::date, interval '1 day') as day
+    `
+    const row = rows[0]
+    return {
+      from,
+      to,
+      newParticuliers: row?.new_particuliers ?? 0,
+      newPros: row?.new_pros ?? 0,
+      newProducts: row?.new_products ?? 0,
+      postsCreated: row?.posts_created ?? 0,
+      postsApproved: row?.posts_approved ?? 0,
+      postsRejected: row?.posts_rejected ?? 0,
+      postsPending: row?.posts_pending ?? 0,
+      prosWithProduct: row?.pros_with_product ?? 0,
+      visibleBusinesses: row?.visible_businesses ?? 0,
+      liveProducts: row?.live_products ?? 0,
+      communes: row?.communes ?? 0,
+      withContact: row?.with_contact ?? 0,
+      livePosts: row?.live_posts ?? 0,
+      series: series.map((item) => ({
+        day: item.day,
+        accounts: item.accounts,
+        products: item.products,
+        posts: item.posts,
+      })),
+    } satisfies Stats
+  })
+
+export const getLocalTestHint = createServerFn({ method: "GET" }).handler(async () => {
+  if (!import.meta.env.DEV) return null
+  return { email: "pro.test@lokali.local", password: "Lokali-Test-971" }
+})
+

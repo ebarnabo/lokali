@@ -1,16 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cream: #f7f4ee;
-  --color-ink: #1c1917;
-  --color-muted: #6b6560;
-  --color-line: #e6e1d8;
-  --color-green: #1a7a4c;
-  --color-green-soft: #e7f3ec;
+  --color-cream: #f4f0e6;
+  --color-ink: #1c1915;
+  --color-muted: #6e675f;
+  --color-line: #e4dccf;
+  --color-green: #146b43;
+  --color-green-soft: #e5f4ec;
   --color-red: #c8102e;
-  --color-paper: #fffcf8;
-  --font-sans: "Inter", system-ui, sans-serif;
-  --radius-card: 1.5rem;
+  --color-paper: #fffdf8;
+  --font-sans: "Outfit", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --radius-card: 1.35rem;
+  --shadow-card:
+    0 0 0 1px rgb(28 25 21 / 0.06),
+    0 1px 2px rgb(28 25 21 / 0.04),
+    0 18px 40px rgb(28 25 21 / 0.06);
 }
 
 @layer base {
@@ -21,27 +26,152 @@
   html {
     background: var(--color-cream);
     color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
   }
   body {
     font-family: var(--font-sans);
     min-height: 100%;
+    background:
+      radial-gradient(880px 420px at 110% -10%, rgb(20 107 67 / 0.12), transparent 58%),
+      radial-gradient(640px 360px at -12% -6%, rgb(200 16 46 / 0.08), transparent 52%),
+      var(--color-cream);
   }
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+.card {
+  background: var(--color-paper);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.kicker {
+  color: var(--color-red);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.lokali-range {
+  accent-color: var(--color-green);
+  height: 1.6rem;
+  cursor: pointer;
+}
+
+.lokali-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.lokali-pin-svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 8px 8px rgb(20 107 67 / 0.32));
+}
+
+.leaflet-div-icon.lokali-pin-wrap,
+.leaflet-div-icon.lokali-me-wrap {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.lokali-me {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color-red);
+  border: 3px solid var(--color-paper);
+  box-shadow: 0 0 0 6px rgb(200 16 46 / 0.22);
+}
+
+.lokali-map {
+  background: #e7efe9;
+}
+
+.lokali-map.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #dfeae3;
+  font-family: var(--font-sans);
+}
+
+.lokali-map.leaflet-container .leaflet-tile-pane {
+  filter: saturate(1.12) contrast(1.04);
+}
+
+.lokali-map.leaflet-container .leaflet-popup-content-wrapper {
+  border-radius: 1rem;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-card);
+}
+
+.lokali-map.leaflet-container .leaflet-popup-content {
+  margin: 12px 14px;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.lokali-map.leaflet-container .leaflet-popup-content span {
+  color: var(--color-muted);
+}
+
+.lokali-map.leaflet-container .leaflet-popup-tip {
+  background: var(--color-paper);
+}
+
+.lokali-map.leaflet-container .leaflet-bar {
+  border: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.lokali-map.leaflet-container .leaflet-bar a {
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.lokali-map.leaflet-container .leaflet-control-attribution {
+  background: rgb(255 253 248 / 0.82);
+  font-size: 10px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .lift {
-    transition: transform 180ms ease, border-color 180ms ease;
+  .lokali-pin-svg {
+    transform-origin: 50% 100%;
+    animation: pin-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
-  .lift:hover {
-    transform: translateY(-2px);
+  .lokali-me {
+    animation: ping 1.8s ease-out infinite;
   }
 }
 
-.lokali-pin {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--color-green);
-  border: 2px solid var(--color-paper);
-  box-shadow: 0 1px 4px rgb(28 25 23 / 0.35);
+@keyframes pin-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ping {
+  0% { box-shadow: 0 0 0 0 rgb(200 16 46 / 0.42); }
+  100% { box-shadow: 0 0 0 16px rgb(200 16 46 / 0); }
 }

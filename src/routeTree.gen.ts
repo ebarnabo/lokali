@@ -15,6 +15,7 @@ import { Route as CarteRouteImport } from './routes/carte'
 import { Route as CompteRouteImport } from './routes/compte'
 import { Route as EntraideRouteImport } from './routes/entraide'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -48,6 +49,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/compte': typeof CompteRoute
   '/entraide': typeof EntraideRoute
   '/login': typeof LoginRoute
+  '/stats': typeof StatsRoute
   '/p/$slug': typeof PSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/compte': typeof CompteRoute
   '/entraide': typeof EntraideRoute
   '/login': typeof LoginRoute
+  '/stats': typeof StatsRoute
   '/p/$slug': typeof PSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/compte': typeof CompteRoute
   '/entraide': typeof EntraideRoute
   '/login': typeof LoginRoute
+  '/stats': typeof StatsRoute
   '/p/$slug': typeof PSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/compte'
     | '/entraide'
     | '/login'
+    | '/stats'
     | '/p/$slug'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/compte'
     | '/entraide'
     | '/login'
+    | '/stats'
     | '/p/$slug'
     | '/api/auth/$'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/compte'
     | '/entraide'
     | '/login'
+    | '/stats'
     | '/p/$slug'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   CompteRoute: typeof CompteRoute
   EntraideRoute: typeof EntraideRoute
   LoginRoute: typeof LoginRoute
+  StatsRoute: typeof StatsRoute
   PSlugRoute: typeof PSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$slug': {
       id: '/p/$slug'
       path: '/p/$slug'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompteRoute: CompteRoute,
   EntraideRoute: EntraideRoute,
   LoginRoute: LoginRoute,
+  StatsRoute: StatsRoute,
   PSlugRoute: PSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

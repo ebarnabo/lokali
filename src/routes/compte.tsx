@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
-import { Field, Shell, buttonClass, ghostClass, inputClass } from "@/components/shell"
+import { Field, Shell, buttonClass, formatSiret, ghostClass, inputClass } from "@/components/shell"
 import { RedirectToSignIn } from "@/lib/auth/gates"
 import { useCurrentUserState } from "@/lib/auth/use-current-user"
 import {
@@ -31,13 +31,13 @@ function Compte() {
 
   return (
     <Shell>
-      <h1 className="text-3xl font-semibold tracking-tight">Compte</h1>
+      <h1 className="text-4xl font-semibold tracking-tight">Compte</h1>
       <p className="mt-2 text-sm text-muted">
         {me.loginEmail} · {me.accountKind === "pro" ? "Pro" : "Particulier"}
         {me.isAdmin ? " · Admin" : ""}
       </p>
       <form
-        className="mt-6 grid gap-4 rounded-3xl border border-line bg-paper p-6 md:grid-cols-2"
+        className="card mt-6 grid gap-4 p-6 md:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault()
           setMessage("")
@@ -46,6 +46,10 @@ function Compte() {
               displayName: me.displayName,
               accountKind: me.accountKind,
               businessName: me.businessName,
+              siret: me.siret,
+              legalForm: me.legalForm,
+              activity: me.activity,
+              managerName: me.managerName,
               description: me.description,
               address: me.address,
               commune: me.commune,
@@ -79,8 +83,32 @@ function Compte() {
         </Field>
         {me.accountKind === "pro" ? (
           <>
-            <Field label="Nom du commerce">
+            <Field label="Enseigne" hint="Le nom que les habitants reconnaissent.">
               <input className={inputClass} value={me.businessName} onChange={(event) => setMe({ ...me, businessName: event.target.value })} required />
+            </Field>
+            <Field label="SIRET" hint="14 chiffres. Il est affiché sur la fiche. La clé est vérifiée.">
+              <input
+                className={`${inputClass} font-mono`}
+                inputMode="numeric"
+                value={me.siret}
+                onChange={(event) => setMe({ ...me, siret: event.target.value.replace(/[^\d]/g, "").slice(0, 14) })}
+                placeholder="12345678901234"
+                required
+              />
+            </Field>
+            <Field label="Forme juridique">
+              <select className={inputClass} value={me.legalForm} onChange={(event) => setMe({ ...me, legalForm: event.target.value })} required>
+                <option value="">Choisir</option>
+                {["Entreprise individuelle", "Micro-entrepreneur", "SARL", "EURL", "SAS", "SASU", "SA", "Association", "Autre"].map((form) => (
+                  <option key={form} value={form}>{form}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Activité" hint="Exemple : épicerie, maraîcher, boulangerie.">
+              <input className={inputClass} value={me.activity} onChange={(event) => setMe({ ...me, activity: event.target.value })} required />
+            </Field>
+            <Field label="Responsable" hint="Non publié. Sert à savoir qui engage la fiche.">
+              <input className={inputClass} value={me.managerName} onChange={(event) => setMe({ ...me, managerName: event.target.value })} />
             </Field>
             <Field label="Commune">
               <input className={inputClass} value={me.commune} onChange={(event) => setMe({ ...me, commune: event.target.value })} />
@@ -102,7 +130,8 @@ function Compte() {
               <input className={inputClass} inputMode="decimal" value={me.lng ?? ""} onChange={(event) => setMe({ ...me, lng: event.target.value === "" ? null : Number(event.target.value) })} placeholder="-61.53" />
             </Field>
             <p className="md:col-span-2 text-sm text-muted">
-              Sans latitude ni longitude, l'adresse est cherchée automatiquement en Guadeloupe. Le téléphone et l'email de connexion restent privés : seuls les contacts cochés sont publics.
+              {me.siret ? `SIRET enregistré : ${formatSiret(me.siret)}. ` : ""}
+              Sans latitude ni longitude, l'adresse est cherchée en Guadeloupe. L'email de connexion et le nom du responsable restent privés.
             </p>
             <Field label="Téléphone public">
               <input className={inputClass} value={me.publicPhone} onChange={(event) => setMe({ ...me, publicPhone: event.target.value })} />
@@ -134,7 +163,7 @@ function Compte() {
         <section className="mt-8">
           <h2 className="text-xl font-semibold">Ce que vous vendez</h2>
           <form
-            className="mt-4 grid gap-3 rounded-3xl border border-line bg-paper p-6 md:grid-cols-4"
+            className="card mt-4 grid gap-3 p-6 md:grid-cols-4"
             onSubmit={(event) => {
               event.preventDefault()
               addProduct({ data: product })
@@ -153,7 +182,7 @@ function Compte() {
           </form>
           <ul className="mt-4 space-y-3">
             {me.products.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-paper px-5 py-4">
+              <li key={item.id} className="card flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <div>
                   <p className="font-medium">{item.name}</p>
                   <p className="text-sm text-muted">

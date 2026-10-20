@@ -16,11 +16,21 @@ function Legal() {
   }, [slug])
   return (
     <Shell>
-      {error ? <p>{error}</p> : null}
+      {error ? <p className="text-red">{error}</p> : null}
+      {!page && !error ? <p className="text-muted">Chargement…</p> : null}
       {page ? (
-        <article className="max-w-2xl">
-          <h1 className="text-3xl font-semibold tracking-tight">{page.title}</h1>
-          <p className="mt-6 whitespace-pre-wrap leading-relaxed">{page.body}</p>
+        <article className="card max-w-3xl p-6 md:p-10">
+          <h1 className="text-4xl font-semibold tracking-tight">{page.title}</h1>
+          <div className="mt-8 space-y-4 text-base leading-relaxed">
+            {page.body
+              .trim()
+              .split(/\n{2,}/)
+              .map((paragraph) => (
+                <p key={paragraph.slice(0, 48)} className="whitespace-pre-wrap">
+                  {paragraph}
+                </p>
+              ))}
+          </div>
         </article>
       ) : null}
     </Shell>

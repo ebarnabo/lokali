@@ -51,7 +51,7 @@ function Admin() {
 
   return (
     <Shell>
-      <h1 className="text-3xl font-semibold tracking-tight">Administration</h1>
+      <h1 className="text-4xl font-semibold tracking-tight">Administration</h1>
       <p className="mt-2 max-w-2xl text-muted">
         Modération manuelle des annonces et des produits. Un agent pourra proposer un avis plus tard, sans jamais publier seul.
       </p>
@@ -69,7 +69,7 @@ function Admin() {
         <h2 className="text-xl font-semibold">Produits</h2>
         {products.length === 0 ? <p className="text-muted">Aucun produit.</p> : null}
         {products.map((product) => (
-          <article key={product.id} className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-paper px-5 py-4">
+          <article key={product.id} className="card flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
               <p className="font-medium">{product.name}</p>
               <p className="text-sm text-muted">{product.businessName}{product.hiddenByAdmin ? " · masqué" : ""}</p>
@@ -88,7 +88,7 @@ function Admin() {
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Textes des pages</h2>
         <form
-          className="mt-4 space-y-3 rounded-3xl border border-line bg-paper p-6"
+          className="card mt-4 space-y-3 p-6"
           onSubmit={(event) => {
             event.preventDefault()
             saveCopy({ data: copy }).then(() => setMessage("Textes enregistrés.")).catch((error: Error) => setMessage(error.message))
@@ -106,14 +106,14 @@ function Admin() {
         {pages.map((page, index) => (
           <form
             key={page.slug}
-            className="space-y-3 rounded-3xl border border-line bg-paper p-6"
+            className="card space-y-3 p-6"
             onSubmit={(event) => {
               event.preventDefault()
               saveLegal({ data: page }).then(() => setMessage("Page légale enregistrée.")).catch((error: Error) => setMessage(error.message))
             }}
           >
             <Field label="Titre"><input className={inputClass} value={page.title} onChange={(event) => setPages(pages.map((item, i) => i === index ? { ...item, title: event.target.value } : item))} /></Field>
-            <Field label={page.slug}><textarea className={`${inputClass} h-40 py-3`} value={page.body} onChange={(event) => setPages(pages.map((item, i) => i === index ? { ...item, body: event.target.value } : item))} /></Field>
+            <Field label={page.slug}><textarea className={`${inputClass} h-64 py-3`} value={page.body} onChange={(event) => setPages(pages.map((item, i) => i === index ? { ...item, body: event.target.value } : item))} /></Field>
             <button className={buttonClass} type="submit">Enregistrer</button>
           </form>
         ))}
@@ -125,7 +125,7 @@ function Admin() {
 function PostCard({ post, onDone }: { post: AdminPost; onDone: () => void }) {
   const [note, setNote] = useState("")
   return (
-    <article className="rounded-3xl border border-line bg-paper p-5">
+    <article className="card p-5">
       <p className="text-sm text-muted">
         {statusLabel(post.status)} · {post.authorKind === "pro" ? "Pro" : "Particulier"} · {post.authorLabel} · {post.createdLabel}
       </p>
